@@ -16,6 +16,15 @@ client.on('ready', (c) => {
     console.log(`${c.user.tag} is online.`);
 });
 
+client.on('messageCreate', (msg) => {
+    if (msg.author.bot)
+        return;
+
+    if (msg.content === '/ugo') {
+        msg.reply('Message est trop grop pour être affiché.');
+    }
+});
+
 client.once(Events.ClientReady, readyClient => {
 	console.log(`Ready! Logged in as ${readyClient.user.tag}`);
 });
