@@ -1,2 +1,2 @@
 # G-Bot
-bot for our friend group discord serv
+funny discord bot
