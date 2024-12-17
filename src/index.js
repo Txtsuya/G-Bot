@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
-const { token } = require('./config.json');
+const { token } = require('../config.json');
 
 const client = new Client({ 
     intents: [
@@ -11,6 +11,11 @@ const client = new Client({
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildMessageTyping,
+        GatewayIntentBits.DirectMessages,
+        GatewayIntentBits.DirectMessageReactions,
+        GatewayIntentBits.DirectMessageTyping,
+        GatewayIntentBits.AutoModerationConfiguration,
+        GatewayIntentBits.AutoModerationExecution,
     ],
 });
 
@@ -37,9 +42,13 @@ client.on('ready', (c) => {
     console.log(`${c.user.tag} is online.`);
 });
 
+client.once(Events.ClientReady, readyClient => {
+	console.log(`Ready! Logged in as ${readyClient.user.tag}`);
+});
+
 client.on(Events.InteractionCreate, async interaction => {
-    if (!interaction.isChatInputCommand())
-        return;
+	if (!interaction.isChatInputCommand()) return;
+
 	const command = interaction.client.commands.get(interaction.commandName);
 
 	if (!command) {
@@ -57,10 +66,6 @@ client.on(Events.InteractionCreate, async interaction => {
 			await interaction.reply({ content: 'There was an error while executing this command!', flags: MessageFlags.Ephemeral });
 		}
 	}
-});
-
-client.once(Events.ClientReady, readyClient => {
-	console.log(`Ready! Logged in as ${readyClient.user.tag}`);
 });
 
 client.login(token);
