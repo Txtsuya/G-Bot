@@ -12,6 +12,10 @@ const client = new Client({
     ],
 });
 
+client.on('ready', (c) => {
+    console.log(`${c.user.tag} is online.`);
+});
+
 client.once(Events.ClientReady, readyClient => {
 	console.log(`Ready! Logged in as ${readyClient.user.tag}`);
 });
