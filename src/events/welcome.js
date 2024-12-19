@@ -16,10 +16,12 @@ module.exports = {
                 { name: 'Membre n°', value: `${member.guild.memberCount}`},
                 { name: 'Rejoins le', value: member.joinedAt.toLocaleDateString() }
             )
-            .setImage('https://i.imgur.com/AfFp7pu.png')
-
+            .setImage(member.client.user.displayAvatarURL({
+                size: 1024,
+                format: 'png',
+                dynamic: true // Permet d'avoir les avatars animés si disponible
+            }))
 
             await channel.send({ embeds: [welcomeEmbed] });
         }
-
 };
