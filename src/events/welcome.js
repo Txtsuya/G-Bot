@@ -23,5 +23,15 @@ module.exports = {
             }))
 
             await channel.send({ embeds: [welcomeEmbed] });
+            const role = member.guild.roles.cache.get('1314188497053290506');
+            if (!role) {
+                console.log('failed to assign role');
+                return;
+            } try {
+                await member.roles.add(role);
+                console.log(`Role successfully added to ${member.user.tag}`);
+            } catch (error) {
+                console.error(`Failed to add role to ${member.user.tag}:`, error);
+            }
         }
 };
