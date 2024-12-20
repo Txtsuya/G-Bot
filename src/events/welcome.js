@@ -19,7 +19,7 @@ module.exports = {
             .setImage(member.client.user.displayAvatarURL({
                 size: 1024,
                 format: 'png',
-                dynamic: true // Permet d'avoir les avatars animés si disponible
+                dynamic: true
             }))
 
             await channel.send({ embeds: [welcomeEmbed] });
