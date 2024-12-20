@@ -17,6 +17,7 @@ const client = new Client({
         GatewayIntentBits.AutoModerationConfiguration,
         GatewayIntentBits.AutoModerationExecution,
         GatewayIntentBits.GuildPresences,
+		GatewayIntentBits.GuildVoiceStates
     ]
 });
 
