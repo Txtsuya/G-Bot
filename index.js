@@ -1,6 +1,10 @@
-const fs = require('node:fs');
+// const fs = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, GatewayIntentBits } = require('discord.js');
+const fs = require('fs');
+console.log('Current directory contents:');
+console.log(fs.readdirSync('.'));
+console.log('Current directory:', process.cwd());
 
 const token = process.env.DISCORD_TOKEN;
 if (!token) {
