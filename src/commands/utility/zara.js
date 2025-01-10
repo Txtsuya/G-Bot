@@ -68,7 +68,7 @@ module.exports = {
 
 
             player.on(AudioPlayerStatus.Playing, () => {
-                interaction.editReply('arrete de roteeeeer t es deguelasse gabrieleuh').catch(console.error);
+                interaction.editReply('Ugo ta une petit copine ?? Hein ???').catch(console.error);
             });
 
             player.on(AudioPlayerStatus.Idle, () => {
