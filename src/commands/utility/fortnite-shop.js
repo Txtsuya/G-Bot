@@ -1,5 +1,4 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { data } = require('./aryan');
 
 module.exports = {
     data: new SlashCommandBuilder()
