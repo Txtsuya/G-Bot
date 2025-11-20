@@ -1,5 +1,4 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { data } = require('./aryan');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -10,24 +9,25 @@ module.exports = {
         await interaction.deferReply();
 
         try {
-            const response = await fetch('https://fortnite-api.com/v2/shop/', {
+            const response = await fetch('https://fortnite-api.com/v2/shop', {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' }
             });
+
             if (!response.ok) {
                 throw new Error(`API error: ${response.status}`);
             }
 
             const shopData = await response.json();
-
-            if (!shopData || !shopData.data || !shopData.data.daily) {
+            if (!shopData || !shopData.data) {
                 throw new Error('Invalid data structure from API');
             }
 
-            const featuredItems = shopData.data.featured.entries.slice(0, 10);
-            const dailyItems = shopData.data.daily.entries.slice(0, 10);
+            const featuredItems = shopData.data.featured?.entries.slice(0, 10) || [];
+            const dailyItems = shopData.data.daily?.entries.slice(0, 10) || [];
+
             const embed = new EmbedBuilder()
-                .setTitle('Fortnite Shop du Jour')
+                .setTitle('🛒 Fortnite Shop du Jour')
                 .setColor(0x00AE86)
                 .setTimestamp();
             
@@ -38,7 +38,7 @@ module.exports = {
                     return `**${itemName}** - ${price} V-Bucks`;
                 }).join('\n');
 
-                embed.addFields({ name: 'Featured Items', value: featuredContent });
+                embed.addFields({ name: '⭐ Featured Items', value: featuredContent });
             }
 
             if (dailyItems.length > 0) {
@@ -48,17 +48,19 @@ module.exports = {
                     return `**${itemName}** - ${price} V-Bucks`;
                 }).join('\n');
 
-                embed.addFields({ name: 'Daily Items', value: dailyContent });
+                embed.addFields({ name: '🔄 Daily Items', value: dailyContent });
             }
 
-            if (featuredItems.length === 0 && dailyItems.length === 0) {
+            if (featuredItems.length > 0 && featuredItems[0].items[0]?.images?.featured) {
                 embed.setImage(featuredItems[0].items[0].images.featured);
             }
 
+            await interaction.editReply({ embeds: [embed] });
+
         } catch (error) {
-            console.error('error fetch Fortnite shop data:', error);
+            console.error('Error fetching Fortnite shop data:', error);
             return interaction.editReply({
-                content: 'shop pas récupéré.',
+                content: 'Impossible de récupérer le shop.',
                 ephemeral: true
             });
         }
