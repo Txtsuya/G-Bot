@@ -13,18 +13,31 @@ module.exports = {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' }
             });
-
+            
             if (!response.ok) {
                 throw new Error(`API error: ${response.status}`);
             }
 
             const shopData = await response.json();
+
+            let debugInfo = '**🔍 DEBUG INFO:**\n';
+            debugInfo += `\`\`\`\n`;
+            debugInfo += `Shop data status: ${shopData.status}\n`;
+            debugInfo += `Has featured: ${!!shopData.data?.featured}\n`;
+            debugInfo += `Has daily: ${!!shopData.data?.daily}\n`;
+            debugInfo += `Featured entries: ${shopData.data?.featured?.entries?.length || 0}\n`;
+            debugInfo += `Daily entries: ${shopData.data?.daily?.entries?.length || 0}\n`;
+            debugInfo += `\`\`\`\n`;
+
             if (!shopData || !shopData.data) {
                 throw new Error('Invalid data structure from API');
             }
 
             const featuredItems = shopData.data.featured?.entries.slice(0, 10) || [];
             const dailyItems = shopData.data.daily?.entries.slice(0, 10) || [];
+            
+            debugInfo += `Featured items extracted: ${featuredItems.length}\n`;
+            debugInfo += `Daily items extracted: ${dailyItems.length}\n`;
 
             const embed = new EmbedBuilder()
                 .setTitle('🛒 Fortnite Shop du Jour')
@@ -33,7 +46,7 @@ module.exports = {
             
             if (featuredItems.length > 0) {
                 const featuredContent = featuredItems.map(item => {
-                    const itemName = item.items[0]?.name || 'Unknown Item';
+                    const itemName = item.items?.[0]?.name || 'Unknown Item';
                     const price = item.finalPrice || 'N/A';
                     return `**${itemName}** - ${price} V-Bucks`;
                 }).join('\n');
@@ -43,7 +56,7 @@ module.exports = {
 
             if (dailyItems.length > 0) {
                 const dailyContent = dailyItems.map(item => {
-                    const itemName = item.items[0]?.name || 'Unknown Item';
+                    const itemName = item.items?.[0]?.name || 'Unknown Item';
                     const price = item.finalPrice || 'N/A';
                     return `**${itemName}** - ${price} V-Bucks`;
                 }).join('\n');
@@ -51,16 +64,27 @@ module.exports = {
                 embed.addFields({ name: '🔄 Daily Items', value: dailyContent });
             }
 
-            if (featuredItems.length > 0 && featuredItems[0].items[0]?.images?.featured) {
-                embed.setImage(featuredItems[0].items[0].images.featured);
+            if (featuredItems.length === 0 && dailyItems.length === 0) {
+                embed.setDescription('Aucun item disponible pour le moment.');
+            }
+
+            if (featuredItems.length > 0 && featuredItems[0].items?.[0]?.images?.featured) {
+                const imageUrl = featuredItems[0].items[0].images.featured;
+                embed.setImage(imageUrl);
+                debugInfo += `Image URL: ${imageUrl}\n`;
+            } else {
+                debugInfo += `No image found\n`;
             }
 
             await interaction.editReply({ embeds: [embed] });
+            await interaction.followUp({ 
+                content: debugInfo,
+                ephemeral: true 
+            });
 
         } catch (error) {
-            console.error('Error fetching Fortnite shop data:', error);
-            return interaction.editReply({
-                content: 'Impossible de récupérer le shop.',
+            await interaction.editReply({
+                content: `❌ Erreur: ${error.message}\n\nStack: \`\`\`${error.stack}\`\`\``,
                 ephemeral: true
             });
         }
