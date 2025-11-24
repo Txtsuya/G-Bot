@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -6,63 +6,125 @@ module.exports = {
         .setDescription('Affiche le shop du jour de Fortnite'),
 
     async execute(interaction) {
-        await interaction.deferReply();
-
         try {
-            const response = await fetch('https://fortnite-api.com/v2/shop', {
-                method: 'GET',
-                headers: { 'Content-Type': 'application/json' }
-            });
+            await interaction.deferReply();
+
+            const response = await fetch('https://fortnite-api.com/v2/shop');
 
             if (!response.ok) {
-                throw new Error(`API error: ${response.status}`);
+                return await interaction.editReply(`❌ Erreur API: ${response.status}`);
+            }
+            const data = await response.json();
+
+            if (!data.data || !data.data.featured) {
+                return await interaction.editReply('Impossible de récupérer le shop.');
             }
 
-            const shopData = await response.json();
-            if (!shopData || !shopData.data) {
-                throw new Error('Invalid data structure from API');
+            const featuredItems = data.data.featured.entries;
+            const itemsPerPage = 10;
+            const totalPages = Math.ceil(featuredItems.length / itemsPerPage);
+            let currentPage = 0;
+
+            const generateEmbed = (page) => {
+                const start = page * itemsPerPage;
+                const end = start + itemsPerPage;
+                const pageItems = featuredItems.slice(start, end);
+
+                const embed = new EmbedBuilder()
+                    .setTitle('🛒 Shop Fortnite du jour')
+                    .setColor('#7B68EE')
+                    .setTimestamp()
+                    .setFooter({ text: `Page ${page + 1}/${totalPages} • Total: ${featuredItems.length} items` });
+
+                pageItems.forEach(entry => {
+                    const item = entry.items[0];
+                    const name = item.name || 'Item inconnu';
+                    const price = entry.finalPrice || 'N/A';
+                    const rarity = item.rarity?.displayValue || 'Commun';
+
+                    embed.addFields({
+                        name: `${name} - ${price} V-Bucks`,
+                        value: `Rareté: ${rarity}`,
+                        inline: true
+                    });
+                });
+
+                return embed;
+            };
+
+            const generateButtons = (page) => {
+                const row = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId('first')
+                            .setLabel('⏮️')
+                            .setStyle(ButtonStyle.Primary)
+                            .setDisabled(page === 0),
+                        new ButtonBuilder()
+                            .setCustomId('prev')
+                            .setLabel('◀️')
+                            .setStyle(ButtonStyle.Primary)
+                            .setDisabled(page === 0),
+                        new ButtonBuilder()
+                            .setCustomId('next')
+                            .setLabel('▶️')
+                            .setStyle(ButtonStyle.Primary)
+                            .setDisabled(page === totalPages - 1),
+                        new ButtonBuilder()
+                            .setCustomId('last')
+                            .setLabel('⏭️')
+                            .setStyle(ButtonStyle.Primary)
+                            .setDisabled(page === totalPages - 1)
+                    );
+                return row;
+            };
+
+            const message = await interaction.editReply({
+                embeds: [generateEmbed(currentPage)],
+                components: totalPages > 1 ? [generateButtons(currentPage)] : []
+            });
+
+            if (totalPages > 1) {
+                const collector = message.createMessageComponentCollector({
+                    time: 300000
+                });
+
+                collector.on('collect', async i => {
+                    switch (i.customId) {
+                        case 'first':
+                            currentPage = 0;
+                            break;
+                        case 'prev':
+                            currentPage = Math.max(0, currentPage - 1);
+                            break;
+                        case 'next':
+                            currentPage = Math.min(totalPages - 1, currentPage + 1);
+                            break;
+                        case 'last':
+                            currentPage = totalPages - 1;
+                            break;
+                    }
+
+                    await i.update({
+                        embeds: [generateEmbed(currentPage)],
+                        components: [generateButtons(currentPage)]
+                    });
+                });
+
+                collector.on('end', () => {
+                    message.edit({ components: [] }).catch(() => {});
+                });
             }
-
-            const featuredItems = shopData.data.featured?.entries.slice(0, 10) || [];
-            const dailyItems = shopData.data.daily?.entries.slice(0, 10) || [];
-
-            const embed = new EmbedBuilder()
-                .setTitle('🛒 Fortnite Shop du Jour')
-                .setColor(0x00AE86)
-                .setTimestamp();
-            
-            if (featuredItems.length > 0) {
-                const featuredContent = featuredItems.map(item => {
-                    const itemName = item.items[0]?.name || 'Unknown Item';
-                    const price = item.finalPrice || 'N/A';
-                    return `**${itemName}** - ${price} V-Bucks`;
-                }).join('\n');
-
-                embed.addFields({ name: '⭐ Featured Items', value: featuredContent });
-            }
-
-            if (dailyItems.length > 0) {
-                const dailyContent = dailyItems.map(item => {
-                    const itemName = item.items[0]?.name || 'Unknown Item';
-                    const price = item.finalPrice || 'N/A';
-                    return `**${itemName}** - ${price} V-Bucks`;
-                }).join('\n');
-
-                embed.addFields({ name: '🔄 Daily Items', value: dailyContent });
-            }
-
-            if (featuredItems.length > 0 && featuredItems[0].items[0]?.images?.featured) {
-                embed.setImage(featuredItems[0].items[0].images.featured);
-            }
-
-            await interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error fetching Fortnite shop data:', error);
-            return interaction.editReply({
-                content: 'Impossible de récupérer le shop.',
-                ephemeral: true
-            });
+            console.error('Erreur fortnite-shop:', error);
+            const errorMessage = `Erreur: ${error.message}`;
+
+            if (interaction.deferred) {
+                await interaction.editReply(errorMessage);
+            } else {
+                await interaction.reply(errorMessage).catch(() => {});
+            }
         }
     }
 }
